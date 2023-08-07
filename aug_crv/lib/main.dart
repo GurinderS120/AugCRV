@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:aug_crv/homePage.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(const MyApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
+      title: 'Flutter Camera Demo',
+      debugShowCheckedModeBanner: false,
+      home: HomePage(),
     );
   }
 }
