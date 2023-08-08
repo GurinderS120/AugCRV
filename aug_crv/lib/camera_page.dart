@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -18,7 +17,6 @@ class CameraPage extends StatefulWidget {
 class _CameraPageState extends State<CameraPage> {
   late CameraController _cameraController;
   bool _isRearCameraSelected = true;
-  File? image;
 
   @override
   void dispose() {
@@ -58,10 +56,18 @@ class _CameraPageState extends State<CameraPage> {
 
   Future openGallery() async {
     try {
-      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (image == null) return;
-      final imageTemp = File(image.path);
-      setState(() => this.image = imageTemp);
+      XFile? imageFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (imageFile != null && context.mounted) {
+        if (context.mounted) {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => PreviewPage(
+                        picture: imageFile,
+                      )));
+        }
+      }
     } on PlatformException catch (e) {
       debugPrint('Error occured while picking an image: $e');
       return null;
