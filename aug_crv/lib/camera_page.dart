@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:aug_crv/preview_page.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key, required this.cameras}) : super(key: key);
@@ -15,6 +18,7 @@ class CameraPage extends StatefulWidget {
 class _CameraPageState extends State<CameraPage> {
   late CameraController _cameraController;
   bool _isRearCameraSelected = true;
+  File? image;
 
   @override
   void dispose() {
@@ -46,6 +50,18 @@ class _CameraPageState extends State<CameraPage> {
                   )));
     } on CameraException catch (e) {
       debugPrint('Error occured while taking picture: $e');
+      return null;
+    }
+  }
+
+  Future openGallery() async {
+    try {
+      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+      final imageTemp = File(image.path);
+      setState(() => this.image = imageTemp);
+    } on PlatformException catch (e) {
+      debugPrint('Error occured while picking an image: $e');
       return null;
     }
   }
@@ -106,6 +122,15 @@ class _CameraPageState extends State<CameraPage> {
                   icon: const Icon(Icons.circle, color: Colors.white),
                 )),
                 const Spacer(),
+                Expanded(
+                  child: IconButton(
+                    onPressed: () async {
+                      await openGallery(); // Call the function to open the gallery
+                    },
+                    iconSize: 30,
+                    icon: const Icon(Icons.photo_library, color: Colors.white),
+                  ),
+                ),
               ]),
             )),
       ]),
