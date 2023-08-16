@@ -1,147 +1,145 @@
-import 'package:camera/camera.dart';
+import 'package:ar_flutter_plugin/datatypes/node_types.dart';
+import 'package:ar_flutter_plugin/managers/ar_object_manager.dart';
+import 'package:ar_flutter_plugin/models/ar_node.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:aug_crv/preview_page.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter/services.dart';
+import 'package:ar_flutter_plugin/ar_flutter_plugin.dart';
+import 'package:ar_flutter_plugin/managers/ar_session_manager.dart';
+import 'package:vector_math/vector_math_64.dart' as vector_math;
 
 class CameraPage extends StatefulWidget {
-  const CameraPage({Key? key, required this.cameras}) : super(key: key);
-
-  final List<CameraDescription>? cameras;
+  const CameraPage({Key? key}) : super(key: key);
 
   @override
   State<CameraPage> createState() => _CameraPageState();
 }
 
 class _CameraPageState extends State<CameraPage> {
-  late CameraController _cameraController;
   bool _isRearCameraSelected = true;
+  ARSessionManager? _arSessionManager;
+  ARNode? webObjectNode;
+  ARNode? localObjectNode;
+  ARObjectManager? _arObjectManager;
 
   @override
   void dispose() {
-    _cameraController.dispose();
     super.dispose();
+    _arSessionManager!.dispose();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    initCamera(widget.cameras![0]);
+  void onARViewCreated(
+      arSessionManager, arObjectManager, arAnchorManager, arLocationManager) {
+    arSessionManager.onInitialize(
+      showFeaturePoints: false,
+      showPlanes: true,
+      customPlaneTexturePath: "triangle.png",
+      showWorldOrigin: true,
+      handleTaps: false,
+    );
+
+    _arSessionManager = arSessionManager;
+    _arObjectManager = arObjectManager;
+
+    arObjectManager.onInitialize();
+
+    onLocalObjectButtonPressed();
   }
 
-  Future takePicture() async {
-    if (!_cameraController.value.isInitialized) {
-      return null;
-    }
-    if (_cameraController.value.isTakingPicture) {
-      return null;
-    }
-    try {
-      await _cameraController.setFlashMode(FlashMode.off);
-      XFile picture = await _cameraController.takePicture();
-      if (context.mounted) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => PreviewPage(
-                      picture: picture,
-                    )));
-      }
-    } on CameraException catch (e) {
-      debugPrint('Error occured while taking picture: $e');
-      return null;
-    }
-  }
-
-  Future openGallery() async {
-    try {
-      XFile? imageFile =
-          await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (imageFile != null && context.mounted) {
-        if (context.mounted) {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => PreviewPage(
-                        picture: imageFile,
-                      )));
-        }
-      }
-    } on PlatformException catch (e) {
-      debugPrint('Error occured while picking an image: $e');
-      return null;
+  Future<void> takeScreenshot() async {
+    var image = await _arSessionManager!.snapshot();
+    if (context.mounted) {
+      await showDialog(
+          context: context,
+          builder: (_) => Dialog(
+                child: Container(
+                  decoration: BoxDecoration(
+                      image: DecorationImage(image: image, fit: BoxFit.cover)),
+                ),
+              ));
     }
   }
 
-  Future initCamera(CameraDescription cameraDescription) async {
-    _cameraController =
-        CameraController(cameraDescription, ResolutionPreset.high);
-    try {
-      await _cameraController.initialize().then((_) {
-        if (!mounted) return;
-        setState(() {});
-      });
-    } on CameraException catch (e) {
-      debugPrint("camera error $e");
+  Future<void> onLocalObjectButtonPressed() async {
+    // 1
+    if (localObjectNode != null) {
+      _arObjectManager?.removeNode(localObjectNode!);
+      localObjectNode = null;
+    } else {
+      // 2
+      var newNode = ARNode(
+          type: NodeType.localGLTF2,
+          uri: 'assets/models/Chicken_01/Chicken_01.gltf',
+          scale: vector_math.Vector3(0.2, 0.2, 0.2),
+          position: vector_math.Vector3(0.0, 0.0, 0.0),
+          rotation: vector_math.Vector4(1.0, 0.0, 0.0, 0.0));
+      // 3
+      bool? didAddLocalNode = await _arObjectManager?.addNode(newNode);
+      localObjectNode = (didAddLocalNode!) ? newNode : null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: SafeArea(
-      child: Stack(children: [
-        (_cameraController.value.isInitialized)
-            ? CameraPreview(_cameraController)
-            : Container(
-                color: Colors.black,
-                child: const Center(child: CircularProgressIndicator())),
-        Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.20,
-              decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  color: Colors.black),
-              child:
-                  Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                Expanded(
-                    child: IconButton(
-                  padding: EdgeInsets.zero,
-                  iconSize: 30,
-                  icon: Icon(
-                      _isRearCameraSelected
-                          ? CupertinoIcons.switch_camera
-                          : CupertinoIcons.switch_camera_solid,
-                      color: Colors.white),
-                  onPressed: () {
-                    setState(
-                        () => _isRearCameraSelected = !_isRearCameraSelected);
-                    initCamera(widget.cameras![_isRearCameraSelected ? 0 : 1]);
-                  },
-                )),
-                Expanded(
-                    child: IconButton(
-                  onPressed: takePicture,
-                  iconSize: 50,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.circle, color: Colors.white),
-                )),
-                const Spacer(),
-                Expanded(
-                  child: IconButton(
-                    onPressed: () async {
-                      await openGallery(); // Call the function to open the gallery
-                    },
-                    iconSize: 30,
-                    icon: const Icon(Icons.photo_library, color: Colors.white),
-                  ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // AR View
+            ARView(
+              onARViewCreated: (arSessionManager, arObjectManager,
+                  arAnchorManager, arLocationManager) {
+                // Set up the AR controller
+                onARViewCreated(arSessionManager, arObjectManager,
+                    arAnchorManager, arLocationManager);
+              },
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.20,
+                decoration: const BoxDecoration(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24)),
+                    color: Colors.black),
+                // AR controls
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 30,
+                        icon: Icon(
+                          _isRearCameraSelected
+                              ? Icons.switch_camera
+                              : Icons.switch_camera_sharp,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          setState(() =>
+                              _isRearCameraSelected = !_isRearCameraSelected);
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: IconButton(
+                        onPressed: () {
+                          // Call the function to take an AR screenshot
+                          takeScreenshot();
+                        },
+                        iconSize: 50,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(Icons.circle, color: Colors.white),
+                      ),
+                    ),
+                    const Spacer(),
+                  ],
                 ),
-              ]),
-            )),
-      ]),
-    ));
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
