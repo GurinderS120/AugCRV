@@ -1,6 +1,7 @@
 import 'package:ar_flutter_plugin/datatypes/node_types.dart';
 import 'package:ar_flutter_plugin/managers/ar_object_manager.dart';
 import 'package:ar_flutter_plugin/models/ar_node.dart';
+import 'package:aug_crv/model_selection_page.dart';
 import 'package:flutter/material.dart';
 import 'package:ar_flutter_plugin/ar_flutter_plugin.dart';
 import 'package:ar_flutter_plugin/managers/ar_session_manager.dart';
@@ -41,7 +42,7 @@ class _CameraPageState extends State<CameraPage> {
 
     arObjectManager.onInitialize();
 
-    onLocalObjectButtonPressed();
+    // onLocalObjectButtonPressed();
   }
 
   Future<void> takeScreenshot() async {
@@ -58,7 +59,7 @@ class _CameraPageState extends State<CameraPage> {
     }
   }
 
-  Future<void> onLocalObjectButtonPressed() async {
+  Future<void> onLocalObjectButtonPressed(model) async {
     // 1
     if (localObjectNode != null) {
       _arObjectManager?.removeNode(localObjectNode!);
@@ -67,7 +68,7 @@ class _CameraPageState extends State<CameraPage> {
       // 2
       var newNode = ARNode(
           type: NodeType.localGLTF2,
-          uri: 'assets/models/Chicken_01/Chicken_01.gltf',
+          uri: 'assets/models/$model',
           scale: vector_math.Vector3(0.2, 0.2, 0.2),
           position: vector_math.Vector3(0.0, 0.0, 0.0),
           rotation: vector_math.Vector4(1.0, 0.0, 0.0, 0.0));
@@ -80,6 +81,9 @@ class _CameraPageState extends State<CameraPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('AR Scene'),
+      ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -133,6 +137,22 @@ class _CameraPageState extends State<CameraPage> {
                       ),
                     ),
                     const Spacer(),
+                    ElevatedButton(
+                      onPressed: () async {
+                        // Navigate to the model selection page and wait for the user's selection
+                        final selectedModel = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ModelSelectionPage(),
+                          ),
+                        );
+
+                        if (selectedModel != null) {
+                          onLocalObjectButtonPressed(selectedModel);
+                        }
+                      },
+                      child: const Text('Select Model'),
+                    ),
                   ],
                 ),
               ),
