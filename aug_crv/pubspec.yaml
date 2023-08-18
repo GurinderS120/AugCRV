@@ -22,3 +22,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/models/
+    - assets/models/Chicken_01/
