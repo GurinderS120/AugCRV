@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 class ModelSelectionPage extends StatelessWidget {
-  final List<String> availableModels = ["Chicken_01.glb", "Duck.glb"];
+  final List<String> availableModels = [
+    "Chicken_01/Chicken_01.glb",
+    "Duck.glb",
+    "Water_tower.glb"
+  ];
 
   ModelSelectionPage({Key? key}) : super(key: key);
 

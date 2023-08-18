@@ -41,8 +41,6 @@ class _CameraPageState extends State<CameraPage> {
     _arObjectManager = arObjectManager;
 
     arObjectManager.onInitialize();
-
-    // onLocalObjectButtonPressed();
   }
 
   Future<void> takeScreenshot() async {
@@ -148,7 +146,9 @@ class _CameraPageState extends State<CameraPage> {
                         );
 
                         if (selectedModel != null) {
-                          onLocalObjectButtonPressed(selectedModel);
+                          final selectedGLTFModel =
+                              selectedModel.replaceAll(".glb", ".gltf");
+                          onLocalObjectButtonPressed(selectedGLTFModel);
                         }
                       },
                       child: const Text('Select Model'),
